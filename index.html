@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Premium Telegram Mini App</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <script src="https://alwingulla.com/88/p.js" data-zone="10282897" data-sdk="show_10282897"></script>
+
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --card: #161b22;
+            --primary: #0088cc;
+            --accent: #ff9500;
+            --text: #ffffff;
+            --text-dim: #8b949e;
+            --success: #238636;
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px 15px 100px;
+            background-color: var(--bg);
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        h2 { font-size: 20px; text-align: center; color: var(--primary); margin-bottom: 20px; font-weight: 800; }
+        h3 { font-size: 16px; margin: 20px 0 10px; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+
+        /* Slider */
+        #slider { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; }
+        #slider::-webkit-scrollbar { display: none; }
+        .slider-item { 
+            min-width: 240px; background: var(--card); border-radius: var(--radius); 
+            overflow: hidden; border: 1px solid #30363d; scroll-snap-align: start;
+        }
+        .slider-item img { width: 100%; height: 130px; object-fit: cover; }
+        .slider-item .title { padding: 10px; font-weight: 600; font-size: 14px; text-align: center; }
+
+        /* Post Cards */
+        .post { background: var(--card); border-radius: var(--radius); padding: 12px; margin-bottom: 15px; border: 1px solid #30363d; }
+        .post img { width: 100%; border-radius: 8px; aspect-ratio: 16/9; object-fit: cover; }
+        .post-title { font-weight: 700; margin: 10px 0 5px; font-size: 16px; }
+        .post-description { color: var(--text-dim); font-size: 13px; margin-bottom: 12px; }
+
+        /* Progress & Buttons */
+        .progress-bar { height: 5px; background: #21262d; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+        .progress { height: 100%; background: linear-gradient(90deg, var(--primary), #58a6ff); width: 0%; transition: width 0.3s; }
+
+        .buy-button { 
+            width: 100%; padding: 12px; border: none; border-radius: 8px; 
+            background: var(--primary); color: white; font-weight: 700; 
+            cursor: pointer; transition: 0.2s; font-size: 14px;
+        }
+        .buy-button.completed { background: var(--success); }
+        .buy-button:active { transform: scale(0.97); }
+
+        /* Navigation */
+        #bottomMenu { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: rgba(22, 27, 34, 0.95); backdrop-filter: blur(10px);
+            padding: 12px; display: flex; gap: 8px; overflow-x: auto; 
+            border-top: 1px solid #30363d; z-index: 1000;
+        }
+        #bottomMenu button { 
+            background: #21262d; color: var(--text-dim); border: 1px solid #30363d;
+            padding: 8px 16px; border-radius: 20px; white-space: nowrap; font-weight: 600;
+        }
+        #bottomMenu button.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        .loading { text-align: center; padding: 20px; color: var(--text-dim); }
+    </style>
+</head>
+<body>
+
+    <h2 id="welcomeHeader">PREMIUM CONTENT HUB</h2>
+
+    <div id="sliderContainer">
+        <h3>🔥 Trending Today</h3>
+        <div id="slider"><div class="loading">Loading...</div></div>
+    </div>
+
+    <div id="postList">
+        <h3>📂 All Collections</h3>
+        <div class="loading">Fetching posts...</div>
+    </div>
+
+    <div id="bottomMenu"></div>
+
+    <script>
+        // ---- Firebase Configuration ----
+        const firebaseConfig = {
+            apiKey: "AIzaSyDI2MyfbMFYd6HAkCdZ2A64uNhC16H5Ku4",
+            authDomain: "bdvideo-fc2e8.firebaseapp.com",
+            databaseURL: "https://bdvideo-fc2e8-default-rtdb.firebaseio.com",
+            projectId: "bdvideo-fc2e8",
+            storageBucket: "bdvideo-fc2e8.firebasestorage.app",
+            messagingSenderId: "988010505538",
+            appId: "1:988010505538:web:e16d6d729ebf98e05294db"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+        const tg = window.Telegram?.WebApp;
+        if(tg) { tg.expand(); tg.ready(); }
+
+        let adsWatchedPerPost = {};
+        let categories = [];
+
+        function todayKey() { return new Date().toISOString().slice(0, 10); }
+        function objToArray(obj) { return Object.entries(obj || {}).map(([id, p]) => ({ id, ...p })); }
+
+        // --- Auth ---
+        auth.signInAnonymously();
+
+        // --- Ad Logic ---
+        async function watchAds(postId, link, adCount, btn) {
+            if (!adsWatchedPerPost[postId]) adsWatchedPerPost[postId] = { count: 0 };
+            
+            let watched = adsWatchedPerPost[postId].count;
+
+            if (watched >= adCount) {
+                window.open(link, '_blank');
+                return;
+            }
+
+            // Monetag Rewarded Call
+            if (typeof show_10282897 === 'function') {
+                show_10282897().then(async () => {
+                    // Success callback
+                    adsWatchedPerPost[postId].count++;
+                    updateButtonLabel(btn, adCount, adsWatchedPerPost[postId].count);
+                    
+                    // Save to Firebase
+                    const user = auth.currentUser;
+                    if (user) {
+                        await db.ref(`dailyAdsWatched/${todayKey()}/${user.uid}`).transaction(c => (c || 0) + 1);
+                    }
+
+                    if (adsWatchedPerPost[postId].count >= adCount) {
+                        await db.ref(`postEvents/${todayKey()}/${postId}/${user?.uid || 'anon'}`).set(true);
+                        tg.showAlert("Congratulations! Content Unlocked.");
+                        window.open(link, '_blank');
+                    }
+                }).catch(() => {
+                    tg.showAlert("Ad failed to load. Please try again.");
+                });
+            } else {
+                tg.showAlert("Ad system is initializing. Please wait...");
+            }
+        }
+
+        function updateButtonLabel(button, adCount, watched) {
+            const pc = Math.min(100, (watched / adCount) * 100);
+            const parent = button.parentElement;
+            const progress = parent.querySelector('.progress');
+            if(progress) progress.style.width = pc + '%';
+
+            if (watched >= adCount) {
+                button.textContent = "🔓 Unlock Now";
+                button.classList.add("completed");
+            } else {
+                button.textContent = `Watch Ad to Unlock (${watched}/${adCount})`;
+            }
+        }
+
+        // --- Data Loading ---
+        async function loadSlider() {
+            const snap = await db.ref('posts').limitToLast(10).once('value');
+            const arr = objToArray(snap.val()).reverse().slice(0, 5);
+            const sliderEl = document.getElementById('slider');
+            sliderEl.innerHTML = '';
+            
+            arr.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'slider-item';
+                item.innerHTML = `
+                    <img src="${p.imageLink}" alt="">
+                    <div class="title">${p.title}</div>
+                    <div style="padding:0 10px 10px">
+                        <div class="progress-bar"><div class="progress"></div></div>
+                        <button class="buy-button" id="s_${p.id}">Watch Ad (0/${p.adCount || 3})</button>
+                    </div>`;
+                sliderEl.appendChild(item);
+                const btn = item.querySelector('button');
+                btn.onclick = () => watchAds(p.id, p.downloadLink, p.adCount || 3, btn);
+            });
+        }
+
+        async function loadPosts(catName = null) {
+            const snap = await db.ref('posts').once('value');
+            let arr = objToArray(snap.val()).reverse();
+            if(catName) arr = arr.filter(p => p.category === catName);
+
+            const listEl = document.getElementById('postList');
+            listEl.innerHTML = `<h3>📂 ${catName || 'All Collections'}</h3>`;
+            
+            arr.forEach(p => {
+                const post = document.createElement('div');
+                post.className = 'post';
+                post.innerHTML = `
+                    <img src="${p.imageLink}" alt="">
+                    <div class="post-title">${p.title}</div>
+                    <div class="post-description">${p.description || ''}</div>
+                    <div class="progress-bar"><div class="progress"></div></div>
+                    <button class="buy-button" id="b_${p.id}">Watch Ad (0/${p.adCount || 3})</button>`;
+                listEl.appendChild(post);
+                const btn = post.querySelector('button');
+                btn.onclick = () => watchAds(p.id, p.downloadLink, p.adCount || 3, btn);
+            });
+        }
+
+        async function loadCategories() {
+            const snap = await db.ref('categories').once('value');
+            const data = snap.val() || {};
+            categories = Object.values(data).map(v => typeof v === 'object' ? v.name : v);
+            
+            const menu = document.getElementById('bottomMenu');
+            menu.innerHTML = '<button class="active">All</button>';
+            menu.firstChild.onclick = (e) => {
+                document.querySelectorAll('#bottomMenu button').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                loadPosts();
+            };
+
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = cat;
+                btn.onclick = (e) => {
+                    document.querySelectorAll('#bottomMenu button').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    loadPosts(cat);
+                };
+                menu.appendChild(btn);
+            });
+        }
+
+        // Start
+        loadCategories();
+        loadSlider();
+        loadPosts();
+    </script>
+</body>
+</html>
