@@ -3,281 +3,236 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Telegram Mini App - Watch Ads to Download</title>
+<title>Telegram Mini App - Premium Content</title>
 
-<!-- Firebase (NO App Check - Monitoring mode) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <style>
-:root{--primary:#0088cc;--secondary:#ff9500;--text:#333;--light:#f9f9f9;--white:#fff;--radius:10px;--shadow:0 2px 8px rgba(0,0,0,.1)}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial,sans-serif;margin:0;padding:20px 15px 90px;background:var(--light);color:var(--text)}
-h2{color:var(--primary);margin:0 0 12px}
-#slider{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px} #slider::-webkit-scrollbar{display:none}
-.slider-item{min-width:200px;background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.slider-item img{width:100%;height:120px;object-fit:cover}
-.slider-item .title{padding:6px;font-weight:700;color:var(--primary);text-align:center}
-.slider-item .progress-bar{height:4px;background:#e0e0e0;margin:6px;border-radius:2px;overflow:hidden}
-.slider-item .progress{height:100%;background:var(--secondary);width:0%}
-.slider-item .buy-button{margin:6px;padding:6px;border:none;border-radius:6px;background:var(--secondary);color:#fff;font-weight:700;cursor:pointer}
-.slider-item .buy-button.completed{background:#4CAF50}
-.post{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;margin:12px 0}
-.post img{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:var(--radius);border:1px solid #eee}
-.post-title{font-weight:700;color:var(--primary);margin-top:6px}
-.post-description{color:#666;font-size:14px;margin:4px 0 6px}
-.post .progress-bar{height:4px;background:#e0e0e0;border-radius:2px;margin-top:6px}
-.post .progress{height:100%;background:var(--secondary);width:0%}
-.post .buy-button{margin-top:6px;width:100%;padding:10px;border:none;border-radius:8px;background:var(--secondary);color:#fff;font-weight:700;cursor:pointer}
-.post .buy-button.completed{background:#4CAF50}
-#bottomMenu{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #ddd;display:flex;gap:8px;overflow-x:auto;padding:10px;z-index:999}
-#bottomMenu::-webkit-scrollbar{display:none}
-#bottomMenu button{background:#eee;border:none;border-radius:999px;padding:8px 16px;white-space:nowrap;font-weight:700}
-#bottomMenu button.active{background:#0088cc;color:#fff}
-.loading{text-align:center;color:#666;padding:16px}
-.error-message{color:#b00020;background:#ffebee;border-radius:10px;padding:12px;margin:10px 0;text-align:center}
+:root{--primary:#0088cc;--secondary:#ff9500;--text:#333;--light:#f4f7f9;--white:#fff;--radius:12px;--shadow:0 4px 12px rgba(0,0,0,.08)}
+body{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;margin:0;padding:20px 15px 100px;background:var(--light);color:var(--text);user-select:none}
+h2{color:var(--primary);text-align:center;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+
+/* Slider Design */
+#slider{display:flex;gap:15px;overflow-x:auto;padding:10px 5px 20px;scroll-snap-type:x mandatory}
+#slider::-webkit-scrollbar{display:none}
+.slider-item{min-width:260px;background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;scroll-snap-align:start;transition:0.3s}
+.slider-item:active{transform:scale(0.98)}
+.slider-item img{width:100%;height:140px;object-fit:cover}
+.slider-item .title{padding:10px;font-size:15px;font-weight:700;color:#222;height:40px;overflow:hidden}
+
+/* Post Design */
+.post{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px;margin-bottom:20px}
+.post img{width:100%;border-radius:10px;aspect-ratio:16/9;object-fit:cover;margin-bottom:10px}
+.post-title{font-size:18px;font-weight:700;color:var(--primary)}
+
+/* Progress & Buttons */
+.progress-bar{height:6px;background:#eee;border-radius:10px;margin:10px 0;overflow:hidden}
+.progress{height:100%;background:linear-gradient(90deg, var(--secondary), #ffb74d);width:0%;transition:width 0.5s ease}
+.buy-button{width:100%;padding:12px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;cursor:pointer;transition:0.3s}
+.buy-button.completed{background:#2ecc71}
+.buy-button:disabled{opacity:0.6;cursor:not-allowed}
+
+/* Bottom Menu */
+#bottomMenu{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,0.95);backdrop-filter:blur(10px);display:flex;gap:10px;padding:15px;overflow-x:auto;border-top:1px solid #eee;z-index:1000}
+#bottomMenu button{background:#eef2f5;border:none;border-radius:25px;padding:10px 20px;font-weight:700;color:#555;transition:0.3s;white-space:nowrap}
+#bottomMenu button.active{background:var(--primary);color:#fff;box-shadow:0 4px 10px rgba(0,136,204,0.3)}
+
+.loading{text-align:center;padding:50px;font-style:italic;color:#888}
 </style>
-<link rel="me" href="https://draft.blogger.com/profile/06006739858796226057" />
-<meta name='google-adsense-platform-account' content='ca-host-pub-1556223355139109'/>
-<meta name='google-adsense-platform-domain' content='blogspot.com'/>
 </head>
 <body>
 
-<h2 id="welcomeHeader">Viral Video Link Telegram</h2>
+<h2 id="welcomeHeader">PREMIUM VIDEO HUB</h2>
 
 <div id="sliderContainer">
-  <h3 style="color:#0088cc;margin:12px 0;">Today Top Videos </h3>
-  <div id="slider"><div class="loading">Loading slider...</div></div>
+  <h3 style="color:var(--primary);margin-left:5px">🔥 Trending Today</h3>
+  <div id="slider"><div class="loading">Fetching trends...</div></div>
 </div>
 
 <div id="postList">
-  <h3 style="color:#0088cc;margin:12px 0;">Recent Posts ⬇</h3>
-  <div class="loading">Loading posts...</div>
+  <h3 style="color:var(--primary);margin-left:5px">📂 All Content</h3>
+  <div class="loading">Syncing database...</div>
 </div>
 
 <div id="bottomMenu"></div>
 
 <script>
-// ---- Firebase init (Monitoring mode) ----
+// ---- Firebase Config ----
 const firebaseConfig = {
-apiKey: "AIzaSyB3AVcTpK6jT1enMeS0HSr-ntr8weer3h0",
-
   apiKey: "AIzaSyDI2MyfbMFYd6HAkCdZ2A64uNhC16H5Ku4",
   authDomain: "bdvideo-fc2e8.firebaseapp.com",
   databaseURL: "https://bdvideo-fc2e8-default-rtdb.firebaseio.com",
   projectId: "bdvideo-fc2e8",
   storageBucket: "bdvideo-fc2e8.firebasestorage.app",
   messagingSenderId: "988010505538",
-  appId: "1:988010505538:web:e16d6d729ebf98e05294db",
-  measurementId: "G-2Z2FZG974K"
+  appId: "1:988010505538:web:e16d6d729ebf98e05294db"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
-const tg = window.Telegram?.WebApp; try{ tg?.expand(); }catch(_){}
+const tg = window.Telegram?.WebApp;
+if(tg){ tg.expand(); tg.ready(); }
 
-// ---- DOM refs ----
-const postList = document.getElementById('postList');
-const slider   = document.getElementById('slider');
-const bottomMenu = document.getElementById('bottomMenu');
+const adsWatchedPerPost={}; 
+let categories=[];
 
-// ---- Helpers ----
-function objToArray(obj){ return Object.entries(obj||{}).map(([id,p])=>({id,...p})); }
-function todayKey(){ return new Date().toISOString().slice(0,10); }
+// ---- Auth & Data Sync ----
+auth.signInAnonymously();
+auth.onAuthStateChanged(user => {
+  if(user) loadAppData();
+});
 
-// ---- Branding ----
-document.getElementById('welcomeHeader').textContent = "Telegram Mini App";
-
-// ---- Public loads ----
-initPublicLoads();
-function initPublicLoads(){
+function loadAppData(){
   loadCategories();
   loadSlider();
   loadPosts();
-  // প্রতি ১ মিনিটে রিফ্রেশ
-  setInterval(()=>{ loadSlider(); loadPosts(getActiveCategory()); }, 60000);
 }
 
-// ---- Anonymous auth (writes for counters) ----
-auth.signInAnonymously().catch(()=>{});
-auth.onAuthStateChanged(async (user)=>{
-  if(!user) return;
-  const u=tg?.initDataUnsafe?.user||null;
-  try{
-    await db.ref('users/'+user.uid).update({
-      tgId:u?.id||null, first_name:u?.first_name||'', last_name:u?.last_name||'',
-      username:u?.username||'', language_code:u?.language_code||'',
-      is_premium:u?.is_premium||false, last_active:new Date().toISOString()
-    });
-    await db.ref(`dailyAdsWatched/${todayKey()}/${user.uid}`).transaction(c=>c||0);
-  }catch(_){}
-});
-
-// ---- State + UI ----
-const adsWatchedPerPost={}; let categories=[];
-
-function updateButtonLabel(button, adCount, w){
-  const watched=(w.zone1||0)+(w.zone2||0);
-  const remaining=Math.max(0, adCount-watched);
-  if(remaining<=0){ button.textContent="Watch Now"; button.classList.add("completed"); }
-  else{ button.textContent=`Watch Ads (${remaining}/${adCount})`; button.classList.remove("completed"); }
+// ---- Data Fetchers ----
+async function loadCategories(){
+  const snap = await db.ref('categories').once('value');
+  const data = snap.val() || {};
+  categories = Object.entries(data).map(([k,v]) => ({id:k, name: typeof v==='object' ? v.name : v}));
+  renderMenu();
 }
 
-// ---- NEW: record post click (dedup per user/day) ----
-async function recordPostClick(postId){
-  const u = auth.currentUser; if(!u) return;
-  const path = `postEvents/${todayKey()}/${postId}/${u.uid}`;
-  try{ await db.ref(path).set(true); }catch(_){}
-}
-
-// ---- Slider (Top Today by postEvents) ----
 async function loadSlider(){
-  slider.innerHTML='<div class="loading">Loading slider...</div>';
-  try{
-    // 1) Read all posts
-    const postsSnap = await db.ref('posts').once('value');
-    const postsObj = postsSnap.val() || {};
-    const postsArr = objToArray(postsObj);
-
-    // 2) Read today's events
-    const evSnap = await db.ref('postEvents/'+todayKey()).once('value');
-    const evObj = evSnap.val() || {};
-
-    // 3) Build popularity map
-    const popularity = {};
-    Object.entries(evObj).forEach(([postId, byUsers])=>{
-      popularity[postId] = Object.keys(byUsers||{}).length; // unique users today
-    });
-
-    // 4) Sort: by popularity desc, then by timestamp desc
-    postsArr.sort((a,b)=>{
-      const pa = popularity[a.id] || 0;
-      const pb = popularity[b.id] || 0;
-      if(pb !== pa) return pb - pa;
-      return (b.timestamp||0) - (a.timestamp||0);
-    });
-
-    // 5) Render top 5
-    renderSlider(postsArr.slice(0,5), popularity);
-  }catch(e){
-    // Fallback: recent posts only
-    try{
-      const snap = await db.ref('posts').once('value');
-      const arr = objToArray(snap.val()||{}).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)).slice(0,5);
-      renderSlider(arr, {});
-    }catch(err){
-      slider.innerHTML = `<div class="error-message">${err.code||''} ${err.message||err}</div>`;
-    }
-  }
+  const snap = await db.ref('posts').limitToLast(10).once('value');
+  const arr = Object.entries(snap.val()||{}).map(([id,p])=>({id,...p})).reverse();
+  renderSlider(arr.slice(0,5));
 }
-function renderSlider(postsArr, popularity){
-  slider.innerHTML='';
-  postsArr.forEach(p=>{
-    if(!adsWatchedPerPost[p.id]) adsWatchedPerPost[p.id]={zone1:0,zone2:0};
-    const adCount=Number(p.adCount||3);
-    const pc=Math.min(100,((adsWatchedPerPost[p.id].zone1+adsWatchedPerPost[p.id].zone2)/adCount)*100);
-    const pop = popularity?.[p.id] || 0;
-    const el=document.createElement('div');
-    el.className='slider-item';
-    el.innerHTML=`
-      <img src="${p.imageLink||'https://via.placeholder.com/300x169?text=No+Image'}" alt="">
-      <div class="title">${p.title||'Untitled'} ${pop?`• 🔥${pop}`:''}</div>
+
+async function loadPosts(catId=null){
+  const snap = await db.ref('posts').once('value');
+  let arr = Object.entries(snap.val()||{}).map(([id,p])=>({id,...p})).reverse();
+  if(catId) {
+    const catName = categories.find(c=>c.id===catId)?.name;
+    arr = arr.filter(p => p.category === catName);
+  }
+  renderPosts(arr);
+}
+
+// ---- Render UI ----
+function renderSlider(data){
+  const slider = document.getElementById('slider');
+  slider.innerHTML = '';
+  data.forEach(p => {
+    const adCount = p.adCount || 3;
+    const watched = getWatched(p.id);
+    const pc = (watched/adCount)*100;
+    const div = document.createElement('div');
+    div.className = 'slider-item';
+    div.innerHTML = `
+      <img src="${p.imageLink || 'https://via.placeholder.com/300x150'}">
+      <div class="title">${p.title}</div>
       <div class="progress-bar"><div class="progress" style="width:${pc}%"></div></div>
-      <button class="buy-button" id="s_${p.id}"></button>`;
-    slider.appendChild(el);
-    const btn=el.querySelector('#s_'+p.id);
-    updateButtonLabel(btn, adCount, adsWatchedPerPost[p.id]);
-    btn.onclick=()=>watchAds(p.id,p.downloadLink,adCount,btn);
+      <button class="buy-button ${watched >= adCount ? 'completed' : ''}" id="btn_${p.id}" onclick="handleAdClick('${p.id}','${p.downloadLink}',${adCount},this)">
+        ${watched >= adCount ? 'Watch Now' : `Ads: ${watched}/${adCount}`}
+      </button>`;
+    slider.appendChild(div);
   });
 }
 
-// ---- Posts (Recent) ----
-async function loadPosts(selectedCatId=null){
-  postList.innerHTML='<h3 style="color:#0088cc;margin:12px 0;">Recent Posts</h3><div class="loading">Loading posts...</div>';
-  try{
-    const snap = await db.ref('posts').once('value');
-    const data = snap.val();
-    if(!data){ postList.innerHTML='<h3 style="color:#0088cc;margin:12px 0;">Recent Posts</h3><div class="error-message">No posts.</div>'; return; }
-    let arr=objToArray(data);
-    if(selectedCatId){ const name=selectedCategoryName(selectedCatId); arr=arr.filter(p=>p.category===name); }
-    arr.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-    postList.innerHTML='<h3 style="color:#0088cc;margin:12px 0;">Recent Posts</h3>';
-    arr.forEach(p=>{
-      if(!adsWatchedPerPost[p.id]) adsWatchedPerPost[p.id]={zone1:0,zone2:0};
-      const adCount=Number(p.adCount||3);
-      const pc=Math.min(100,((adsWatchedPerPost[p.id].zone1+adsWatchedPerPost[p.id].zone2)/adCount)*100);
-      const d=document.createElement('div'); d.className='post';
-      d.innerHTML=`
-        <img src="${p.imageLink||'https://via.placeholder.com/300x169?text=No+Image'}" alt="">
-        <div class="post-title">${p.title||'Untitled'}</div>
-        ${p.description?`<div class="post-description">${p.description}</div>`:''}
-        <div class="progress-bar"><div class="progress" style="width:${pc}%"></div></div>
-        <button class="buy-button" id="b_${p.id}"></button>`;
-      postList.appendChild(d);
-      const btn=d.querySelector('#b_'+p.id);
-      updateButtonLabel(btn, adCount, adsWatchedPerPost[p.id]);
-      btn.onclick=()=>watchAds(p.id,p.downloadLink,adCount,btn);
-    });
-  }catch(e){
-    postList.innerHTML = `<h3 style="color:#0088cc;margin:12px 0;">Recent Posts</h3><div class="error-message">${e.code||''} ${e.message||e}</div>`;
+function renderPosts(data){
+  const list = document.getElementById('postList');
+  list.innerHTML = '';
+  data.forEach(p => {
+    const adCount = p.adCount || 3;
+    const watched = getWatched(p.id);
+    const pc = (watched/adCount)*100;
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `
+      <img src="${p.imageLink || 'https://via.placeholder.com/400x200'}">
+      <div class="post-title">${p.title}</div>
+      <div class="progress-bar"><div class="progress" style="width:${pc}%"></div></div>
+      <button class="buy-button ${watched >= adCount ? 'completed' : ''}" id="btn_post_${p.id}" onclick="handleAdClick('${p.id}','${p.downloadLink}',${adCount},this)">
+        ${watched >= adCount ? 'Watch Now' : `Unlock Video (${watched}/${adCount})`}
+      </button>`;
+    list.appendChild(div);
+  });
+}
+
+function renderMenu(){
+  const menu = document.getElementById('bottomMenu');
+  menu.innerHTML = '<button class="active" onclick="filterCat(null, this)">All</button>';
+  categories.forEach(c => {
+    menu.innerHTML += `<button onclick="filterCat('${c.id}', this)">${c.name}</button>`;
+  });
+}
+
+function filterCat(id, btn){
+  document.querySelectorAll('#bottomMenu button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadPosts(id);
+}
+
+// ---- Ad Logic ----
+function getWatched(id){
+  if(!adsWatchedPerPost[id]) adsWatchedPerPost[id] = 0;
+  return adsWatchedPerPost[id];
+}
+
+async function handleAdClick(postId, link, adCount, btn){
+  let watched = getWatched(postId);
+  
+  if(watched >= adCount){
+    window.open(link, '_blank');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Loading Ad...";
+
+  try {
+    const zoneId = '10251457'; // Monetag Zone ID
+    await loadAndShowAd(zoneId);
+    
+    // Success - Update Count
+    adsWatchedPerPost[postId]++;
+    watched = adsWatchedPerPost[postId];
+    
+    // Update UI
+    const pc = (watched/adCount)*100;
+    const parent = btn.parentElement;
+    parent.querySelector('.progress').style.width = pc + '%';
+    
+    if(watched >= adCount){
+      btn.textContent = "Watch Now";
+      btn.classList.add('completed');
+      tg?.showConfirm("Success! Video is unlocked. Open link?");
+      window.open(link, '_blank');
+    } else {
+      btn.textContent = `Ads: ${watched}/${adCount}`;
+    }
+  } catch (err) {
+    alert("Ad failed to load. Please try again.");
+  } finally {
+    btn.disabled = false;
   }
 }
 
-// ---- Categories ----
-async function loadCategories(){
-  try{
-    const snap=await db.ref('categories').once('value');
-    const data=snap.val()||{};
-    categories = Object.entries(data).map(([k,v])=>({id:k,name:typeof v==='object'?v.name:v}));
-    if(categories.length===0){ categories=[{id:'v-movies',name:'Movies'},{id:'v-games',name:'Games'},{id:'v-tools',name:'Tools'}]; }
-    renderCategoryMenu();
-  }catch(_){
-    categories=[{id:'v-movies',name:'Movies'},{id:'v-games',name:'Games'},{id:'v-tools',name:'Tools'}];
-    renderCategoryMenu();
-  }
-}
-function renderCategoryMenu(){
-  bottomMenu.innerHTML='';
-  const all=document.createElement('button'); all.textContent='All'; all.classList.add('active');
-  all.onclick=()=>{setActive(all); loadPosts(null);}; bottomMenu.appendChild(all);
-  categories.forEach(c=>{ const b=document.createElement('button'); b.textContent=c.name; b.dataset.categoryId=c.id; b.onclick=()=>{setActive(b); loadPosts(c.id)}; bottomMenu.appendChild(b); });
-}
-function setActive(btn){ bottomMenu.querySelectorAll('button').forEach(x=>x.classList.remove('active')); btn.classList.add('active'); }
-function getActiveCategory(){ return bottomMenu.querySelector('button.active')?.dataset?.categoryId || null; }
-function selectedCategoryName(id){ const c=categories.find(x=>x.id===id); return c?c.name:null; }
-
-// ---- Ads ----
-function loadMonetagZoneId(){ return db.ref('settings/monetagZoneId').once('value').then(s=>s.val()||'10251457').catch(()=> '10251457'); }
-function loadMonetagSdk(zoneId){ return new Promise((resolve,reject)=>{ if(window[`show_${zoneId}`]) return resolve(); const script=document.createElement('script'); script.src='https://libtl.com/sdk.js'; script.dataset.zone=zoneId; script.dataset.sdk=`show_${zoneId}`; script.onload=()=>window[`show_${zoneId}`]?resolve():reject(new Error('SDK not loaded')); script.onerror=()=>reject(new Error('Failed to load SDK')); document.head.appendChild(script); }); }
-async function showMonetagAd(zoneId){ await loadMonetagSdk(zoneId); await window[`show_${zoneId}`](); return true; }
-
-async function watchAds(postId, link, adCount, btn){
-  if(!adsWatchedPerPost[postId]) adsWatchedPerPost[postId]={zone1:0,zone2:0};
-  const {zone1,zone2}=adsWatchedPerPost[postId];
-  if(zone1+zone2>=adCount){ 
-    try{ await recordPostClick(postId); }catch(_){}
-    window.open(link,'_blank','noopener'); 
-    return; 
-  }
-  try{
-    const half1=Math.ceil(adCount/2), half2=Math.floor(adCount/2);
-    let shown=false;
-    const zoneId=await loadMonetagZoneId();
-    if(zone1<half1){ if(zoneId){ await showMonetagAd(zoneId); adsWatchedPerPost[postId].zone1++; shown=true; } }
-    else if(zone2<half2){ const SECOND='10251457'; if(SECOND){ await showMonetagAd(SECOND); adsWatchedPerPost[postId].zone2++; shown=true; } }
-    if(shown){
-      updateButtonLabel(btn, adCount, adsWatchedPerPost[postId]);
-      const user=auth.currentUser;
-      if(user){ const today=todayKey(); await db.ref(`dailyAdsWatched/${today}/${user.uid}`).transaction(c=>(c||0)+1); }
-      if(adsWatchedPerPost[postId].zone1+adsWatchedPerPost[postId].zone2>=adCount){
-        try{ await recordPostClick(postId); }catch(_){}
-        setTimeout(()=>window.open(link,'_blank','noopener'),500);
-      }
-    } else alert("Could not load ad. Try later.");
-  }catch(_){ alert("Error showing ad"); }
+function loadAndShowAd(zoneId){
+  return new Promise((resolve, reject) => {
+    if(window[`show_${zoneId}`]){
+      window[`show_${zoneId}`]().then(resolve).catch(reject);
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://alwingulla.com/88/p.js'; // Monetag SDK
+    s.dataset.zone = zoneId;
+    s.dataset.sdk = `show_${zoneId}`;
+    s.onload = () => {
+      if(window[`show_${zoneId}`]) window[`show_${zoneId}`]().then(resolve).catch(reject);
+      else reject();
+    };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
 }
 </script>
 </body>
 </html>
-
