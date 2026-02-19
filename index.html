@@ -13,6 +13,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <script src="https://ad.gigapub.tech/script?id=1096"></script>
+    <script src="https://libtl.com/sdk.js" data-zone="10282897" data-sdk="show_10282897"></script>
 
     <style>
         :root {
@@ -41,81 +42,20 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 25px;
-            filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.3));
         }
 
-        h3 {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 25px 0 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Recent Posts (Now on Top) */
         .post {
             background: var(--card-bg);
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 20px;
             padding: 15px;
             margin-bottom: 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
 
-        .post img {
-            width: 100%;
-            aspect-ratio: 16/9;
-            object-fit: cover;
-            border-radius: 12px;
-            margin-bottom: 12px;
-        }
+        .post img { width: 100%; border-radius: 12px; aspect-ratio: 16/9; object-fit: cover; }
 
-        .post-title {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        /* Trending Slider (Now below Recent) */
-        #slider {
-            display: flex;
-            gap: 15px;
-            overflow-x: auto;
-            padding-bottom: 15px;
-            scrollbar-width: none;
-        }
-        #slider::-webkit-scrollbar { display: none; }
-
-        .slider-item {
-            min-width: 220px;
-            background: var(--card-bg);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 16px;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .slider-item img { width: 100%; height: 120px; object-fit: cover; }
-
-        /* Progress & Buttons */
-        .progress-bar {
-            height: 6px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-            margin: 15px 0;
-            overflow: hidden;
-        }
-        .progress {
-            height: 100%;
-            background: var(--premium-gradient);
-            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
-            transition: width 0.4s ease;
-        }
+        .progress-bar { height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .progress { height: 100%; background: var(--premium-gradient); transition: width 0.4s; }
 
         .buy-button {
             width: 100%;
@@ -125,16 +65,10 @@
             background: var(--premium-gradient);
             color: white;
             font-weight: 700;
-            font-size: 13px;
-            text-transform: uppercase;
             cursor: pointer;
-            transition: transform 0.2s;
         }
 
-        .buy-button:active { transform: scale(0.98); }
         .buy-button.completed { background: #10b981; }
-
-        .loading-text { text-align: center; color: var(--text-dim); padding: 40px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -142,54 +76,48 @@
 <h2 id="welcomeHeader">BD VIRAL LINK ZONE</h2>
 
 <div id="postList">
-    <h3>⚡ RECENT UPDATES</h3>
-    <div id="postArea"><div class="loading-text">Loading latest links...</div></div>
-</div>
-
-<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 30px 0;">
-
-<div id="sliderContainer">
-    <h3>🔥 TRENDING VIDEOS</h3>
-    <div id="slider"><div class="loading-text">Loading...</div></div>
+    <h3 style="color:var(--primary); font-size:14px;">⚡ RECENT UPDATES</h3>
+    <div id="postArea"></div>
 </div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyDI2MyfbMFYd6HAkCdZ2A64uNhC16H5Ku4",
-  authDomain: "bdvideo-fc2e8.firebaseapp.com",
-  databaseURL: "https://bdvideo-fc2e8-default-rtdb.firebaseio.com",
-  projectId: "bdvideo-fc2e8",
-  storageBucket: "bdvideo-fc2e8.firebasestorage.app",
-  messagingSenderId: "988010505538",
-  appId: "1:988010505538:web:e16d6d729ebf98e05294db"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const auth = firebase.auth();
-
 const REQUIRED_ADS = 10;
 const adsWatched = JSON.parse(localStorage.getItem('ads_progress') || '{}');
 
-async function showAd() {
-    return new Promise(resolve => {
-        if(typeof triggerAd === 'function') {
-            triggerAd();
-            setTimeout(resolve, 1500);
-        } else {
-            alert("Please wait for ad to load or disable ad-blocker.");
-            resolve();
-        }
+// --- Dual Ad Engine ---
+async function showAnyAd() {
+    return new Promise(async (resolve) => {
+        let adShown = false;
+
+        // 1. Try Monetag first (Fast response)
+        try {
+            if (typeof show_10282897 === 'function') {
+                await show_10282897();
+                adShown = true;
+            }
+        } catch (e) { console.log("Monetag failed, trying Giga..."); }
+
+        if (adShown) return resolve(true);
+
+        // 2. Try Giga.pub as Fallback
+        try {
+            if (typeof triggerAd === 'function') {
+                triggerAd();
+                adShown = true;
+            }
+        } catch (e) { console.log("Giga failed too."); }
+
+        setTimeout(() => resolve(adShown), 2000);
     });
 }
 
-function updateBtn(btn, count) {
-    if(count >= REQUIRED_ADS) {
-        btn.textContent = "🚀 DOWNLOAD NOW";
-        btn.classList.add('completed');
-    } else {
-        btn.textContent = `🔓 UNLOCK VIDEO (${count}/${REQUIRED_ADS})`;
-    }
-}
+// --- Auto Ad on Open ---
+window.onload = async () => {
+    console.log("App opened, loading auto ad...");
+    setTimeout(async () => {
+        await showAnyAd();
+    }, 3000); // অ্যাপ ওপেন হওয়ার ৩ সেকেন্ড পর অটো অ্যাড আসবে
+};
 
 async function handleAction(id, link, btn) {
     let current = adsWatched[id] || 0;
@@ -198,72 +126,52 @@ async function handleAction(id, link, btn) {
         return;
     }
     
-    await showAd();
-    current++;
-    adsWatched[id] = current;
-    localStorage.setItem('ads_progress', JSON.stringify(adsWatched));
-    
-    const progress = btn.parentElement.querySelector('.progress');
-    if(progress) progress.style.width = `${(current/REQUIRED_ADS)*100}%`;
-    updateBtn(btn, current);
-}
-
-function init() {
-    auth.signInAnonymously();
-    
-    db.ref('posts').on('value', snap => {
-        const data = snap.val();
-        if(!data) {
-            document.getElementById('postArea').innerHTML = '<div class="loading-text">No posts available.</div>';
-            return;
-        }
+    const success = await showAnyAd();
+    if(success) {
+        current++;
+        adsWatched[id] = current;
+        localStorage.setItem('ads_progress', JSON.stringify(adsWatched));
         
-        const posts = Object.entries(data).map(([id, v]) => ({id, ...v}));
-        // Sort by timestamp (Newest first)
-        posts.sort((a,b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        // 1. Render Recent Posts (Top)
-        const postArea = document.getElementById('postArea');
-        postArea.innerHTML = '';
-        posts.forEach(p => {
-            const count = adsWatched[p.id] || 0;
-            const div = document.createElement('div');
-            div.className = 'post';
-            div.innerHTML = `
-                <img src="${p.imageLink || 'https://via.placeholder.com/300x169'}">
-                <div class="post-title">${p.title}</div>
-                <div class="progress-bar"><div class="progress" style="width:${(count/REQUIRED_ADS)*100}%"></div></div>
-                <button class="buy-button" id="ps_${p.id}"></button>
-            `;
-            postArea.appendChild(div);
-            const btn = div.querySelector(`#ps_${p.id}`);
-            updateBtn(btn, count);
-            btn.onclick = () => handleAction(p.id, p.downloadLink, btn);
-        });
-
-        // 2. Render Trending Slider (Bottom) - Using first 5 posts as trending
-        const slider = document.getElementById('slider');
-        slider.innerHTML = '';
-        [...posts].reverse().slice(0, 5).forEach(p => {
-            const count = adsWatched[p.id] || 0;
-            const div = document.createElement('div');
-            div.className = 'slider-item';
-            div.innerHTML = `
-                <img src="${p.imageLink || 'https://via.placeholder.com/200x120'}">
-                <div style="padding:10px">
-                    <div class="post-title" style="font-size:12px; height:34px; overflow:hidden">${p.title}</div>
-                    <button class="buy-button" style="padding:8px; font-size:10px" id="sl_${p.id}"></button>
-                </div>
-            `;
-            slider.appendChild(div);
-            const btn = div.querySelector(`#sl_${p.id}`);
-            updateBtn(btn, count);
-            btn.onclick = () => handleAction(p.id, p.downloadLink, btn);
-        });
-    });
+        const progress = btn.parentElement.querySelector('.progress');
+        if(progress) progress.style.width = `${(current/REQUIRED_ADS)*100}%`;
+        
+        if(current >= REQUIRED_ADS) {
+            btn.textContent = "🚀 DOWNLOAD NOW";
+            btn.classList.add('completed');
+        } else {
+            btn.textContent = `🔓 UNLOCK VIDEO (${current}/${REQUIRED_ADS})`;
+        }
+    }
 }
 
-init();
+// --- Firebase & Initialization ---
+const firebaseConfig = {
+    apiKey: "AIzaSyDI2MyfbMFYd6HAkCdZ2A64uNhC16H5Ku4",
+    databaseURL: "https://bdvideo-fc2e8-default-rtdb.firebaseio.com",
+    projectId: "bdvideo-fc2e8",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+db.ref('posts').on('value', snap => {
+    const data = snap.val();
+    const postArea = document.getElementById('postArea');
+    postArea.innerHTML = '';
+    
+    Object.entries(data || {}).forEach(([id, p]) => {
+        const count = adsWatched[id] || 0;
+        const div = document.createElement('div');
+        div.className = 'post';
+        div.innerHTML = `
+            <img src="${p.imageLink}">
+            <div style="font-weight:700; margin:10px 0;">${p.title}</div>
+            <div class="progress-bar"><div class="progress" style="width:${(count/REQUIRED_ADS)*100}%"></div></div>
+            <button class="buy-button" id="ps_${id}">${count >= REQUIRED_ADS ? '🚀 DOWNLOAD NOW' : `🔓 UNLOCK VIDEO (${count}/${REQUIRED_ADS})`}</button>
+        `;
+        postArea.appendChild(div);
+        div.querySelector('button').onclick = (e) => handleAction(id, p.downloadLink, e.target);
+    });
+});
 </script>
 </body>
 </html>
