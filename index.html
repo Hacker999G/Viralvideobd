@@ -6,7 +6,7 @@
     <title>BD VIRAL LINK ZONE</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    
+
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -54,8 +54,12 @@
 
         .post img { width: 100%; border-radius: 12px; aspect-ratio: 16/9; object-fit: cover; }
 
-        .progress-bar { height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 15px 0; overflow: hidden; }
-        .progress { height: 100%; background: var(--premium-gradient); transition: width 0.4s; }
+        .progress-bar { height: 8px; background: rgba(255,255,255,0.05); border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .progress { 
+            height: 100%; 
+            background: var(--premium-gradient); 
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
 
         .buy-button {
             width: 100%;
@@ -66,8 +70,10 @@
             color: white;
             font-weight: 700;
             cursor: pointer;
+            transition: transform 0.2s;
         }
 
+        .buy-button:active { transform: scale(0.98); }
         .buy-button.completed { background: #10b981; }
     </style>
 </head>
@@ -76,12 +82,14 @@
 <h2 id="welcomeHeader">BD VIRAL LINK ZONE</h2>
 
 <div id="postList">
-    <h3 style="color:var(--primary); font-size:14px;">⚡ RECENT UPDATES</h3>
+    <h3 style="color:var(--primary); font-size:14px; letter-spacing: 1px;">⚡ RECENT UPDATES</h3>
     <div id="postArea"></div>
 </div>
 
 <script>
-const REQUIRED_ADS = 10;
+// --- Configuration ---
+const REQUIRED_ADS = 5; // ৫টি অ্যাড লিমিট
+const DIRECT_LINK = "https://omg10.com/4/6765363"; // আপনার ইনকাম বাড়ানোর ডিরেক্ট লিঙ্ক
 const adsWatched = JSON.parse(localStorage.getItem('ads_progress') || '{}');
 
 // --- Dual Ad Engine ---
@@ -89,52 +97,55 @@ async function showAnyAd() {
     return new Promise(async (resolve) => {
         let adShown = false;
 
-        // 1. Try Monetag first (Fast response)
+        // 1. Monetag
         try {
             if (typeof show_10282897 === 'function') {
                 await show_10282897();
                 adShown = true;
             }
-        } catch (e) { console.log("Monetag failed, trying Giga..."); }
+        } catch (e) { console.log("Monetag failed..."); }
 
         if (adShown) return resolve(true);
 
-        // 2. Try Giga.pub as Fallback
+        // 2. Giga.pub Fallback
         try {
             if (typeof triggerAd === 'function') {
                 triggerAd();
                 adShown = true;
             }
-        } catch (e) { console.log("Giga failed too."); }
+        } catch (e) { console.log("Giga failed."); }
 
         setTimeout(() => resolve(adShown), 2000);
     });
 }
 
-// --- Auto Ad on Open ---
-window.onload = async () => {
-    console.log("App opened, loading auto ad...");
-    setTimeout(async () => {
-        await showAnyAd();
-    }, 3000); // অ্যাপ ওপেন হওয়ার ৩ সেকেন্ড পর অটো অ্যাড আসবে
-};
-
+// --- Logic ---
 async function handleAction(id, link, btn) {
     let current = adsWatched[id] || 0;
+
+    // যদি সবগুলো অ্যাড দেখা হয়ে যায়
     if(current >= REQUIRED_ADS) {
         window.open(link, '_blank');
         return;
     }
-    
+
     const success = await showAnyAd();
+
     if(success) {
         current++;
         adsWatched[id] = current;
         localStorage.setItem('ads_progress', JSON.stringify(adsWatched));
-        
+
+        // প্রোগ্রেস বার আপডেট
         const progress = btn.parentElement.querySelector('.progress');
         if(progress) progress.style.width = `${(current/REQUIRED_ADS)*100}%`;
-        
+
+        // প্রতিটা অ্যাড দেখার পর অটো ডিরেক্ট লিঙ্ক ওপেন হবে
+        setTimeout(() => {
+            window.open(DIRECT_LINK, '_blank');
+        }, 800);
+
+        // বাটন টেক্সট আপডেট
         if(current >= REQUIRED_ADS) {
             btn.textContent = "🚀 DOWNLOAD NOW";
             btn.classList.add('completed');
@@ -144,7 +155,7 @@ async function handleAction(id, link, btn) {
     }
 }
 
-// --- Firebase & Initialization ---
+// --- Firebase Initialization ---
 const firebaseConfig = {
     apiKey: "AIzaSyDI2MyfbMFYd6HAkCdZ2A64uNhC16H5Ku4",
     databaseURL: "https://bdvideo-fc2e8-default-rtdb.firebaseio.com",
@@ -157,7 +168,7 @@ db.ref('posts').on('value', snap => {
     const data = snap.val();
     const postArea = document.getElementById('postArea');
     postArea.innerHTML = '';
-    
+
     Object.entries(data || {}).forEach(([id, p]) => {
         const count = adsWatched[id] || 0;
         const div = document.createElement('div');
@@ -166,7 +177,9 @@ db.ref('posts').on('value', snap => {
             <img src="${p.imageLink}">
             <div style="font-weight:700; margin:10px 0;">${p.title}</div>
             <div class="progress-bar"><div class="progress" style="width:${(count/REQUIRED_ADS)*100}%"></div></div>
-            <button class="buy-button" id="ps_${id}">${count >= REQUIRED_ADS ? '🚀 DOWNLOAD NOW' : `🔓 UNLOCK VIDEO (${count}/${REQUIRED_ADS})`}</button>
+            <button class="buy-button ${count >= REQUIRED_ADS ? 'completed' : ''}" id="ps_${id}">
+                ${count >= REQUIRED_ADS ? '🚀 DOWNLOAD NOW' : `🔓 UNLOCK VIDEO (${count}/${REQUIRED_ADS})`}
+            </button>
         `;
         postArea.appendChild(div);
         div.querySelector('button').onclick = (e) => handleAction(id, p.downloadLink, e.target);
